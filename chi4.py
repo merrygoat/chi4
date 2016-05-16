@@ -3,28 +3,30 @@ from scipy.spatial.distance import cdist
 from time import time
 from sys import argv, exit
 
+
 def cdistmethod(data, numframes, numparticles, dimensions, numberdensity, temperature, threshold):
     distance = np.zeros((numframes, 4))
     distancesquared = np.zeros((numframes, 3))
 
     for refframenumber in xrange(0, numframes):
         for curframenumber in xrange(refframenumber+1, numframes):
-            sqrtprod = cdist(data[refframenumber, :, 0:dimensions], data[curframenumber, :, 0:dimensions])
+            sqrtprod = cdist(data[refframenumber][:, 0:dimensions], data[curframenumber][:, 0:dimensions])
+            numobservations = data[refframenumber][:, 0:dimensions].shape[0] * data[curframenumber][:, 0:dimensions].shape[0]
 
-            result = float((np.sum(sqrtprod < threshold)))/numparticles
-            distance[curframenumber-refframenumber,0:2] += [result, 1]
+            result = float((np.sum(sqrtprod < threshold)))/np.sqrt(numobservations)
+            distance[curframenumber-refframenumber, 0:2] += [result, 1]
             distancesquared[curframenumber-refframenumber, 0:2] += [(result*result), 1]
 
     # normalise by dividing by number of observations
     with np.errstate(divide='ignore', invalid='ignore'):  # suppress divide by zero warning since value is 0 at T=0
-        distance[:,2] = distance[:,0]/distance[:,1]
-        distancesquared[:,2] = distancesquared[:,0]/distancesquared[:,1]
-    #square distance
-    distance[:,3] = distance[:,2]**2
+        distance[:, 2] = distance[:, 0]/distance[:, 1]
+        distancesquared[:, 2] = distancesquared[:, 0]/distancesquared[:, 1]
+    # square distance
+    distance[:, 3] = distance[:, 2]**2
 
-    chisquared = distancesquared[:,2] - distance[:,3]
+    chisquared = distancesquared[:, 2] - distance[:, 3]
 
-    #normalise chi squared
+    # normalise chi squared
     chisquared = chisquared*numberdensity*numparticles*temperature
 
     return chisquared
@@ -71,19 +73,25 @@ def main():
 
     if filename.endswith("xyz"):
         xyztocg(filename)
-        filename = filename + ".cg"
+        filename += ".cg"
 
     data = np.loadtxt(filename, delimiter="\t")
 
     numframes = int(max(data[:, dimensions]) + 1)
-    numparticles = int(max(data[:, (dimensions + 1)]) + 1)
-    sortedmatrix = np.zeros((numframes, numparticles, (dimensions + 2)))
+    maxnumparticles = 0
 
     for i in xrange(0, numframes):
-        sortedmatrix[i, :, :] = data[data[:, dimensions] == i, :]
+        particlesinframe = data[data[:,dimensions] == i, :].shape[0]
+        if particlesinframe > maxnumparticles:
+            maxnumparticles = particlesinframe
+
+    sortedmatrix = []
+
+    for i in xrange(0, numframes):
+        sortedmatrix.append(data[data[:, dimensions] == i, :])
 
     a = time()
-    np.savetxt(filename + "_chi4.txt", cdistmethod(sortedmatrix, numframes, numparticles, dimensions, numberdensity, temperature, threshold))
+    np.savetxt(filename + "_chi4.txt", cdistmethod(sortedmatrix, numframes, maxnumparticles, dimensions, numberdensity, temperature, threshold))
     print time()-a
 
 main()
