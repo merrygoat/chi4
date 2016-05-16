@@ -4,7 +4,7 @@ from time import time
 from sys import argv, exit
 
 
-def cdistmethod(data, numframes, numparticles, dimensions, numberdensity, temperature, threshold):
+def cdistmethod(data, numframes, averageparticles, dimensions, numberdensity, temperature, threshold):
     distance = np.zeros((numframes, 4))
     distancesquared = np.zeros((numframes, 3))
 
@@ -27,7 +27,7 @@ def cdistmethod(data, numframes, numparticles, dimensions, numberdensity, temper
     chisquared = distancesquared[:, 2] - distance[:, 3]
 
     # normalise chi squared
-    chisquared = chisquared*numberdensity*numparticles*temperature
+    chisquared = chisquared*numberdensity*averageparticles*temperature
 
     return chisquared
 
@@ -77,21 +77,16 @@ def main():
 
     data = np.loadtxt(filename, delimiter="\t")
 
-    numframes = int(max(data[:, dimensions]) + 1)
-    maxnumparticles = 0
-
-    for i in xrange(0, numframes):
-        particlesinframe = data[data[:,dimensions] == i, :].shape[0]
-        if particlesinframe > maxnumparticles:
-            maxnumparticles = particlesinframe
-
+    numcolumns = data.shape[1]  # how many columns are there in the inut data?
+    numframes = int(max(data[:, numcolumns - 2]) + 1)  # assume framenumber is penultimate column
+    averageparticles = data.shape[0]/float(numframes)
     sortedmatrix = []
 
     for i in xrange(0, numframes):
-        sortedmatrix.append(data[data[:, dimensions] == i, :])
+        sortedmatrix.append(data[data[:, numcolumns - 2] == i, :])
 
     a = time()
-    np.savetxt(filename + "_chi4.txt", cdistmethod(sortedmatrix, numframes, maxnumparticles, dimensions, numberdensity, temperature, threshold))
+    np.savetxt(filename + "_chi4.txt", cdistmethod(sortedmatrix, numframes, averageparticles, dimensions, numberdensity, temperature, threshold))
     print time()-a
 
 main()
