@@ -75,7 +75,7 @@ def main():
         xyztocg(filename)
         filename += ".cg"
 
-    data = np.loadtxt(filename, delimiter="\t")
+    data = np.loadtxt(filename)
 
     numcolumns = data.shape[1]  # how many columns are there in the inut data?
     numframes = int(max(data[:, numcolumns - 2]) + 1)  # assume framenumber is penultimate column
