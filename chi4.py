@@ -34,29 +34,28 @@ def cdistmethod(data, numframes, averageparticles, dimensions, numberdensity, te
 def xyztocg(filename):
 
     inputfile = open(filename, 'r')
-    data = inputfile.readlines()
-    inputfile.close()
-
-    numparticles = int(data[0])
-    numlines = len(data)
 
     outputfile = open(filename + ".cg", 'w')
 
-    for i in range(0, numlines):
-        if i % (numparticles+2) == 0:
-            # num particles line
-            pass
-        elif i % (numparticles+2) == 1:
-            # comment line
-            pass
-        else:
-            outputchunk = data[i].split()
+    line = inputfile.readline()
+    framenumber = 0
+    particlenumber = 0
+
+    while line != "":
+        numparticles = int(line)  # read number of particles from first line of frame
+        line = inputfile.readline()  # read comment from second line of frame
+
+        for i in xrange(0, numparticles):
+            line = inputfile.readline()
+            outputchunk = line.split()
             outputfile.write(outputchunk[1] + "\t" +
                              outputchunk[2] + "\t" +
                              outputchunk[3].rstrip("\n") + "\t" +
-                             str(i//(numparticles+2)) + "\t" +
-                             str((i % (numparticles+2))-2) + "\n")
-
+                             str(framenumber) + "\t" +
+                             str(particlenumber) + "\n")
+            particlenumber += 1
+        framenumber += 1
+        line = inputfile.readline()  # read in number of particles in next frame
     outputfile.close()
 
 
