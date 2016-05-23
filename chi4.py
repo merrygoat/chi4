@@ -4,7 +4,7 @@ from time import time
 from sys import argv, exit
 
 
-def cdistmethod(data, numframes, averageparticles, dimensions, numberdensity, temperature, threshold):
+def cdistmethod(data, numframes, averageparticles, dimensions, numberdensity, threshold):
     distance = np.zeros((numframes, 4))
     distancesquared = np.zeros((numframes, 3))
 
@@ -27,7 +27,7 @@ def cdistmethod(data, numframes, averageparticles, dimensions, numberdensity, te
     chisquared = distancesquared[:, 2] - distance[:, 3]
 
     # normalise chi squared
-    chisquared = chisquared*numberdensity*averageparticles*temperature
+    chisquared = chisquared/(numberdensity*averageparticles)
 
     return chisquared
 
@@ -61,14 +61,13 @@ def xyztocg(filename):
 
 def main():
 
-    if len(argv) != 6:
-        print("Incorrect syntax. Use Chi4.py filename.txt num_spatial_dimensions chi4_threshold number_density temperature")
+    if len(argv) != 5:
+        print("Incorrect syntax. Use Chi4.py filename.txt num_spatial_dimensions chi4_threshold number_density_in_sigma")
         exit()
     filename = argv[1]
     dimensions = int(argv[2])
     threshold = float(argv[3])
     numberdensity = float(argv[4])
-    temperature = float(argv[5])
 
     if filename.endswith("xyz"):
         xyztocg(filename)
@@ -85,7 +84,7 @@ def main():
         sortedmatrix.append(data[data[:, numcolumns - 2] == i, :])
 
     a = time()
-    np.savetxt(filename + "_chi4.txt", cdistmethod(sortedmatrix, numframes, averageparticles, dimensions, numberdensity, temperature, threshold))
+    np.savetxt(filename + "_chi4.txt", cdistmethod(sortedmatrix, numframes, averageparticles, dimensions, numberdensity, threshold))
     print time()-a
 
 main()
