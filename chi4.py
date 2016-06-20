@@ -30,7 +30,7 @@ def cdistmethod(data, numframes, averageparticles, dimensions, numberdensity, th
     chisquared = chisquared*numberdensity*averageparticles
     return chisquared
 
-def xyztocg(filename):
+def xyztocg(filename, simulationdata = 1):
 
     inputfile = open(filename, 'r')
 
@@ -54,6 +54,8 @@ def xyztocg(filename):
                              str(particlenumber) + "\n")
             particlenumber += 1
         framenumber += 1
+        if simulationdata == 1:
+            particlenumber = 0
         line = inputfile.readline()  # read in number of particles in next frame
     outputfile.close()
 
@@ -93,7 +95,8 @@ def main():
     
         chisquaredresults[i] = cdistmethod(sortedmatrix, numframes, averageparticles, dimensions, numberdensity, threshold)
 
-        np.savetxt(filename + "_chi4.txt", )
+    # Print the transpose - this gets the columns and rows right
+    np.savetxt(filename + "_chi4.txt", zip(*chisquaredresults))
         
     
     print time()-t
