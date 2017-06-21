@@ -1,7 +1,6 @@
 import numpy as np
 from scipy.spatial.distance import cdist
 from time import time
-from sys import argv, exit
 
 
 def cdistmethod(data, numframes, averageparticles, dimensions, numberdensity, threshold):
@@ -47,7 +46,8 @@ def xyztocg(filename, simulationdata=1):
         for i in range(0, numparticles):
             line = inputfile.readline()
             outputchunk = line.split()
-            outputfile.write(outputchunk[1] + "\t" + outputchunk[2] + "\t" + outputchunk[3].rstrip("\n") + "\t" + str(framenumber) + "\t" + str(particlenumber) + "\n")
+            outputfile.write(outputchunk[1] + "\t" + outputchunk[2] + "\t" + outputchunk[3].rstrip("\n") + "\t" 
+                            + str(framenumber) + "\t" + str(particlenumber) + "\n")
             particlenumber += 1
         framenumber += 1
         if simulationdata == 1:
@@ -56,16 +56,7 @@ def xyztocg(filename, simulationdata=1):
     outputfile.close()
 
 
-def main():
-    t = time()
-
-    if len(argv) != 5:
-        print("Incorrect syntax. Use Chi4.py filename.txt num_spatial_dimensions chi4_threshold number_density")
-        exit()
-    filename = argv[1]
-    dimensions = int(argv[2])
-    threshold = float(argv[3])
-    numberdensity = float(argv[4])
+def main(filename, dimensions, threshold, numberdensity):
 
     if filename.endswith("xyz"):
         xyztocg(filename)
@@ -81,12 +72,9 @@ def main():
     for j in range(0, numframes):
         sortedmatrix.append(data[data[:, numcolumns - 2] == j, :])
 
-    chisquaredresults = cdistmethod(sortedmatrix, numframes, averageparticles, dimensions, numberdensity,
-                                       threshold)
+    chisquaredresults = cdistmethod(sortedmatrix, numframes, averageparticles, dimensions, numberdensity, threshold)
 
     np.savetxt(filename + "_chi4.txt", chisquaredresults)
-
-    print(time() - t)
 
 
 main()
