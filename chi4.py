@@ -3,11 +3,11 @@ from scipy.spatial.distance import cdist
 from time import time
 
 
-def cdistmethod(data, numframes, averageparticles, dimensions, numberdensity, threshold):
+def cdistmethod(data, numframes, cutoff, averageparticles, dimensions, numberdensity, threshold):
     distance = np.zeros((numframes, 4))
     distancesquared = np.zeros((numframes, 3))
 
-    for refframenumber in range(0, numframes):
+    for refframenumber in range(0, cutoff):
         for curframenumber in range(refframenumber + 1, numframes):
             sqrtprod = cdist(data[refframenumber][:, 0:dimensions], data[curframenumber][:, 0:dimensions])
             numobservations = data[refframenumber][:, 0:dimensions].shape[0] * data[curframenumber][:, 0:dimensions].shape[0]
@@ -56,7 +56,7 @@ def xyztocg(filename, simulationdata=1):
     outputfile.close()
 
 
-def main(filename, dimensions, threshold, numberdensity):
+def main(filename, dimensions, threshold, cutoff, numberdensity):
 
     if filename.endswith("xyz"):
         xyztocg(filename)
@@ -72,6 +72,6 @@ def main(filename, dimensions, threshold, numberdensity):
     for j in range(0, numframes):
         sortedmatrix.append(data[data[:, numcolumns - 2] == j, :])
 
-    chisquaredresults = cdistmethod(sortedmatrix, numframes, averageparticles, dimensions, numberdensity, threshold)
+    chisquaredresults = cdistmethod(sortedmatrix, numframes, cutoff, averageparticles, dimensions, numberdensity, threshold)
 
     np.savetxt(filename + "_chi4.txt", chisquaredresults)
