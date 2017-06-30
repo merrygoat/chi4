@@ -75,6 +75,3 @@ def main(filename, dimensions, threshold, numberdensity):
     chisquaredresults = cdistmethod(sortedmatrix, numframes, averageparticles, dimensions, numberdensity, threshold)
 
     np.savetxt(filename + "_chi4.txt", chisquaredresults)
-
-
-main()
