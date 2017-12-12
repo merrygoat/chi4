@@ -1,18 +1,19 @@
 import numpy as np
 from scipy.spatial.distance import cdist
-from time import time
+from tqdm import trange
 
 
 def cdistmethod(data, numframes, cutoff, averageparticles, dimensions, numberdensity, threshold):
     distance = np.zeros((numframes, 4))
     distancesquared = np.zeros((numframes, 3))
+    sqthreshold = threshold ** 2
 
-    for refframenumber in range(0, cutoff):
+    for refframenumber in trange(0, cutoff):
         for curframenumber in range(refframenumber + 1, numframes):
-            sqrtprod = cdist(data[refframenumber][:, 0:dimensions], data[curframenumber][:, 0:dimensions])
+            prod = cdist(data[refframenumber][:, 0:dimensions], data[curframenumber][:, 0:dimensions], 'sqeuclidean')
             numobservations = data[refframenumber][:, 0:dimensions].shape[0] * data[curframenumber][:, 0:dimensions].shape[0]
 
-            result = float((np.sum(sqrtprod < threshold))) / np.sqrt(numobservations)
+            result = float((np.sum(prod < sqthreshold))) / np.sqrt(numobservations)
             distance[curframenumber - refframenumber, 0:2] += [result, 1]
             distancesquared[curframenumber - refframenumber, 0:2] += [(result * result), 1]
 
@@ -69,9 +70,11 @@ def main(filename, dimensions, threshold, cutoff, numberdensity):
     averageparticles = data.shape[0] / float(numframes)
     sortedmatrix = []
 
-    for j in range(0, numframes):
+    for j in trange(0, numframes):
         sortedmatrix.append(data[data[:, numcolumns - 2] == j, :])
 
     chisquaredresults = cdistmethod(sortedmatrix, numframes, cutoff, averageparticles, dimensions, numberdensity, threshold)
 
     np.savetxt(filename + "_chi4.txt", chisquaredresults)
+
+main("sample.xyz", 3, 0.3, 250, 1.1)

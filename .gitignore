@@ -1,3 +1,7 @@
 /__pycache__
 working_copy.ipynb
 /.ipynb_checkpoints
+/.idea
+*.xyz
+*.txt
+*.cg
