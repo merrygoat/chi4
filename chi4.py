@@ -1,31 +1,43 @@
 import numpy as np
 from tqdm import trange
+from scipy.spatial.distance import cdist
 
 
 def cdistmethod(data, numframes, cutoff, numberdensity, threshold):
     distance = np.zeros((numframes, 4))
     distancesquared = np.zeros((numframes, 3))
     sqthreshold = threshold ** 2
+    n_bins = int(len(data[0])/50)
 
     if cutoff > numframes:
         cutoff = numframes
 
-    for ref_frame_number in trange(cutoff):
-        ref_frame = data[ref_frame_number]
+    for ref_frame_number in trange(numframes):
         for cur_frame_number in range(ref_frame_number+1, len(data)):
-            cur_frame = data[cur_frame_number]
+            num_iterations = 0
             overlap_count = 0
-            for particle in ref_frame:
-                # Find the particles in cur_frame within threshold of the particles in ref_frame
-                search_indices = np.searchsorted(cur_frame[:, 0], [particle[0] - threshold, particle[0] + threshold])
-                # Get the squared distance between the close particles in cur_frame and the particle
-                neighbour_distances = np.sum((cur_frame[search_indices[0]:search_indices[1], :] - particle) ** 2, axis=1)
-                overlap_count += np.count_nonzero(neighbour_distances < sqthreshold)
+            if num_iterations < cutoff:
+                dist_bins = np.linspace(data[ref_frame_number].min(), data[ref_frame_number].max(), n_bins)
+                for bin_num in range(n_bins-1):
+                    ref_lims = dist_bins[bin_num:bin_num + 2]
+                    cur_lims = [ref_lims[0]-sqthreshold, ref_lims[1]+sqthreshold]
+                    ref_indices = np.searchsorted(data[ref_frame_number][:, 0], ref_lims)
+                    cur_indices = np.searchsorted(data[cur_frame_number][:, 0], cur_lims)
 
-            numobservations = cur_frame.shape[0] * ref_frame.shape[0]
+                    overlap_count += np.count_nonzero(cdist(data[cur_frame_number][cur_indices[0]:cur_indices[1]],
+                                                            data[ref_frame_number][ref_indices[0]:ref_indices[1]],
+                                                            metric='sqeuclidean') < sqthreshold)
+                num_iterations += 1
+
+            numobservations = data[cur_frame_number].shape[0] * data[ref_frame_number].shape[0]
             result = overlap_count / np.sqrt(numobservations)
             distance[cur_frame_number - ref_frame_number, 0:2] += [result, 1]
             distancesquared[cur_frame_number - ref_frame_number, 0:2] += [(result * result), 1]
+
+    return normalization(distance, distancesquared, data, numberdensity)
+
+
+def normalization(distance, distancesquared, data, numberdensity):
 
     # normalise by dividing by number of observations
     with np.errstate(divide='ignore', invalid='ignore'):  # suppress divide by zero warning since value is 0 at T=0
@@ -84,4 +96,5 @@ def main(filename, dimensions, threshold, cutoff, numberdensity):
 
     np.savetxt(filename + "_chi4.txt", chisquaredresults)
 
-main("sample.xyz", 3, 0.3, 250, 1.1)
+
+main("E:/sample DH/Trond KA/T0.50.xyz", 3, 0.3, 250, 1.2)
