@@ -9,8 +9,8 @@ def calculate_chi_four(sorted_particle_positions, frame_cutoff, particle_diamete
     displacement_threshold = 0.3 * particle_diameter
     sq_displacement_threshold = displacement_threshold ** 2
     num_particles = len(sorted_particle_positions[0])
-    n_bins = int(num_particles / 50)
-    distance = np.zeros((num_frames, 4))
+    n_bins = int(num_particles / 20)
+    distance = np.zeros((num_frames, 3))
     distancesquared = np.zeros((num_frames, 3))
 
     if frame_cutoff > num_frames:
@@ -28,14 +28,13 @@ def calculate_chi_four(sorted_particle_positions, frame_cutoff, particle_diamete
                     overlap_count += count_overlap(bin_num, cur_frame_number, dist_bins, ref_frame_number, sorted_particle_positions, sq_displacement_threshold)
                 num_iterations += 1
 
-                numobservations = sorted_particle_positions[cur_frame_number].shape[0] * sorted_particle_positions[ref_frame_number].shape[0]
-                result = overlap_count / np.sqrt(numobservations)
-                distance[cur_frame_number - ref_frame_number, 0:2] += [result, 1]
-                distancesquared[cur_frame_number - ref_frame_number, 0:2] += [(result * result), 1]
+                distance[cur_frame_number - ref_frame_number, 0:2] += [overlap_count, 1]
+                distancesquared[cur_frame_number - ref_frame_number, 0:2] += [(overlap_count * overlap_count), 1]
 
         pbar.update(num_iterations)
 
-    return normalization(distance, distancesquared, sorted_particle_positions, particle_diameter)
+    normalised_results = normalization(distance, distancesquared, sorted_particle_positions, particle_diameter)
+    return normalised_results
 
 
 def count_overlap(bin_num, cur_frame_number, dist_bins, ref_frame_number, sorted_particle_positions, sq_displacement_threshold):
@@ -43,9 +42,9 @@ def count_overlap(bin_num, cur_frame_number, dist_bins, ref_frame_number, sorted
     cur_lims = [ref_lims[0] - sq_displacement_threshold, ref_lims[1] + sq_displacement_threshold]
     ref_indices = np.searchsorted(sorted_particle_positions[ref_frame_number][:, 0], ref_lims)
     cur_indices = np.searchsorted(sorted_particle_positions[cur_frame_number][:, 0], cur_lims)
-    distance_matrix = cdist(sorted_particle_positions[cur_frame_number][cur_indices[0]:cur_indices[1]],
-                            sorted_particle_positions[ref_frame_number][ref_indices[0]:ref_indices[1]],
-                            metric='sqeuclidean')
+    current_frame_particles = sorted_particle_positions[cur_frame_number][cur_indices[0]:cur_indices[1]]
+    reference_frame_particles = sorted_particle_positions[ref_frame_number][ref_indices[0]:ref_indices[1]]
+    distance_matrix = cdist(current_frame_particles, reference_frame_particles, metric='sqeuclidean')
     overlap_matrix = distance_matrix < sq_displacement_threshold
     num_overlaps = np.count_nonzero(overlap_matrix)
     return num_overlaps
@@ -71,9 +70,11 @@ def normalization(distance, distancesquared, data, particle_diameter):
     y_len = (data[0][:, 1].max() - data[0][:, 1].min()) / particle_diameter
     z_len = (data[0][:, 2].max() - data[0][:, 2].min()) / particle_diameter
     volume = x_len * y_len * z_len
+    density = volume / average_particles
+    temperature = 1
     # Normalise chi squared
-    chisquared = chisquared * average_particles * average_particles / volume
-    return chisquared
+    chisquared = chisquared * density / average_particles * temperature
+    return chisquared, distance
 
 
 def read_xyz_file(filename, dimensions):
@@ -116,10 +117,10 @@ def main(filename, num_spatial_dimensions, frame_cutoff, particle_diameter):
 
     particle_positions = read_xyz_file(filename, num_spatial_dimensions)
     sorted_particle_positions = sort_lists(particle_positions)
-    chisquaredresults = calculate_chi_four(sorted_particle_positions, frame_cutoff, particle_diameter)
+    chisquaredresults, distance = calculate_chi_four(sorted_particle_positions, frame_cutoff, particle_diameter)
 
     np.savetxt(filename + "_chi4.txt", chisquaredresults)
+    np.savetxt(filename + "_w.txt", distance)
 
 
-main("F:/sample DH/Paddy/10_01_06-vf0.56/i/paddy_track/full_trajectory_no_drift.xyz", 3, 10, 10.75)
-
+main("run155.xyz", 3, 250, 1)
