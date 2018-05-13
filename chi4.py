@@ -3,48 +3,35 @@ from tqdm import tqdm
 from scipy.spatial.distance import cdist
 
 
-def calculate_chi_four(sorted_particle_positions, frame_cutoff, particle_diameter):
+def calculate_chi_four(particle_positions, frame_cutoff, particle_diameter):
 
-    num_frames = len(sorted_particle_positions)
+    num_frames = len(particle_positions)
     displacement_threshold = 0.3 * particle_diameter
     sq_displacement_threshold = displacement_threshold ** 2
-    num_particles = len(sorted_particle_positions[0])
-    n_bins = int(num_particles / 20)
     distance = np.zeros((num_frames, 3))
     distancesquared = np.zeros((num_frames, 3))
 
     if frame_cutoff > num_frames:
         frame_cutoff = num_frames
     # the number of operations involves the (num_frames - 1)'th triangle number
-    tri_frames = num_frames - 1
-    pbar = tqdm(total=((tri_frames ** 2 + tri_frames) / 2) - ((((tri_frames - frame_cutoff) ** 2) + (tri_frames - frame_cutoff)) / 2))
+    pbar = tqdm(total=int(((frame_cutoff - 1) ** 2 + (frame_cutoff - 1)) / 2 + (num_frames - frame_cutoff) * frame_cutoff))
     for ref_frame_number in range(num_frames):
         num_iterations = 0
         for cur_frame_number in range(ref_frame_number + 1, num_frames):
             overlap_count = 0
             if cur_frame_number >= num_frames - frame_cutoff:
-                dist_bins = np.linspace(sorted_particle_positions[ref_frame_number].min(), sorted_particle_positions[ref_frame_number].max(), n_bins)
-                for bin_num in range(n_bins - 1):
-                    overlap_count += count_overlap(bin_num, cur_frame_number, dist_bins, ref_frame_number, sorted_particle_positions, sq_displacement_threshold)
+                overlap_count += count_overlap(cur_frame_number, ref_frame_number, particle_positions, sq_displacement_threshold)
                 num_iterations += 1
-
                 distance[cur_frame_number - ref_frame_number, 0:2] += [overlap_count, 1]
                 distancesquared[cur_frame_number - ref_frame_number, 0:2] += [(overlap_count * overlap_count), 1]
-
         pbar.update(num_iterations)
 
-    normalised_results = normalization(distance, distancesquared, sorted_particle_positions, particle_diameter)
+    normalised_results = normalization(distance, distancesquared, particle_positions, particle_diameter)
     return normalised_results
 
 
-def count_overlap(bin_num, cur_frame_number, dist_bins, ref_frame_number, sorted_particle_positions, sq_displacement_threshold):
-    ref_lims = dist_bins[bin_num:bin_num + 2]
-    cur_lims = [ref_lims[0] - sq_displacement_threshold, ref_lims[1] + sq_displacement_threshold]
-    ref_indices = np.searchsorted(sorted_particle_positions[ref_frame_number][:, 0], ref_lims)
-    cur_indices = np.searchsorted(sorted_particle_positions[cur_frame_number][:, 0], cur_lims)
-    current_frame_particles = sorted_particle_positions[cur_frame_number][cur_indices[0]:cur_indices[1]]
-    reference_frame_particles = sorted_particle_positions[ref_frame_number][ref_indices[0]:ref_indices[1]]
-    distance_matrix = cdist(current_frame_particles, reference_frame_particles, metric='sqeuclidean')
+def count_overlap(cur_frame_number, ref_frame_number, sorted_particle_positions, sq_displacement_threshold):
+    distance_matrix = cdist(sorted_particle_positions[cur_frame_number], sorted_particle_positions[ref_frame_number], metric='sqeuclidean')
     overlap_matrix = distance_matrix < sq_displacement_threshold
     num_overlaps = np.count_nonzero(overlap_matrix)
     return num_overlaps
@@ -106,21 +93,13 @@ def read_xyz_file(filename, dimensions):
     return particle_positions
 
 
-def sort_lists(particle_lists):
-    # Sort the particles in each frame by the x coordinate
-    for frame in range(len(particle_lists)):
-        particle_lists[frame] = particle_lists[frame][particle_lists[frame][:, 0].argsort()]
-    return particle_lists
-
-
 def main(filename, num_spatial_dimensions, frame_cutoff, particle_diameter):
 
     particle_positions = read_xyz_file(filename, num_spatial_dimensions)
-    sorted_particle_positions = sort_lists(particle_positions)
-    chisquaredresults, distance = calculate_chi_four(sorted_particle_positions, frame_cutoff, particle_diameter)
+    chisquaredresults, distance = calculate_chi_four(particle_positions, frame_cutoff, particle_diameter)
 
     np.savetxt(filename + "_chi4.txt", chisquaredresults)
     np.savetxt(filename + "_w.txt", distance)
 
 
-main("run155.xyz", 3, 250, 1)
+main("run155.xyz", 3, 2, 1)
