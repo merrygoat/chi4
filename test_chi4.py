@@ -16,42 +16,6 @@ class TestCoordinateMethods:
         assert len(coordinates[0]) == 3375
 
 
-class TestChi4:
-    @staticmethod
-    def test_normalise_by_observations():
-        sample_data = np.array([[0, 0], [88, 159], [60, 86], [30, 59], [26, 57]])
-        anticipated_result = np.array([np.nan, 88/159, 60/86, 30/59, 26/57])
-        actual_result = chi4.normalise_by_observations(sample_data)
-        assert np.allclose(actual_result, anticipated_result, equal_nan=True) is True
-
-    @staticmethod
-    def test_get_average_particles():
-        # cubic unit cell of size [2, 2, 2]
-        sample_coordinates = [np.array([[0, 0, 0], [0, 0, 2], [0, 2, 0], [0, 2, 2], [2, 0, 0], [2, 0, 2], [2, 2, 0], [2, 2, 2]]),
-                              np.array([[0, 2, 0], [0, 2, 2], [2, 0, 0], [2, 0, 2], [2, 2, 0], [2, 2, 2]])]
-
-        average_particles = chi4.get_average_particles(sample_coordinates)
-        assert math.isclose(7, average_particles) is True
-
-    @staticmethod
-    def test_get_density():
-        # cubic unit cell of size [2, 2, 2]
-        sample_coordinates = [np.array([[0, 0, 0], [0, 0, 2], [0, 2, 0], [0, 2, 2], [2, 0, 0], [2, 0, 2], [2, 2, 0], [2, 2, 2]])]
-
-        density = chi4.get_particle_density(sample_coordinates, 1)
-        assert math.isclose(1, density) is True
-
-    @staticmethod
-    def test_simple_chi_4():
-        chi4_result = chi4.measure_chi_4("sample_configurations/sample_configuration.xyz", 3, 100, 1, 0)
-        print(chi4_result)
-
-    @staticmethod
-    def test_cell_list_chi_4():
-        chi4_result = chi4.measure_chi_4("sample_configurations/sample_configuration.xyz", 3, 100, 1, 1)
-        print(chi4_result)
-
-
 class TestCdistMethod:
     @staticmethod
     def test_count_overlap():
@@ -142,3 +106,39 @@ class TestCellListMethod:
                                                                 ref_frame=frame_2, squared_correlation_length=25) == 1
         assert cell_list_method.check_overlap_between_particles(particle_i=0, particle_j=1, cur_frame=frame_1,
                                                                 ref_frame=frame_2, squared_correlation_length=25) == 0
+
+
+class TestChi4:
+    @staticmethod
+    def test_normalise_by_observations():
+        sample_data = np.array([[0, 0], [88, 159], [60, 86], [30, 59], [26, 57]])
+        anticipated_result = np.array([np.nan, 88/159, 60/86, 30/59, 26/57])
+        actual_result = chi4.normalise_by_observations(sample_data)
+        assert np.allclose(actual_result, anticipated_result, equal_nan=True) is True
+
+    @staticmethod
+    def test_get_average_particles():
+        # cubic unit cell of size [2, 2, 2]
+        sample_coordinates = [np.array([[0, 0, 0], [0, 0, 2], [0, 2, 0], [0, 2, 2], [2, 0, 0], [2, 0, 2], [2, 2, 0], [2, 2, 2]]),
+                              np.array([[0, 2, 0], [0, 2, 2], [2, 0, 0], [2, 0, 2], [2, 2, 0], [2, 2, 2]])]
+
+        average_particles = chi4.get_average_particles(sample_coordinates)
+        assert math.isclose(7, average_particles) is True
+
+    @staticmethod
+    def test_get_density():
+        # cubic unit cell of size [2, 2, 2]
+        sample_coordinates = [np.array([[0, 0, 0], [0, 0, 2], [0, 2, 0], [0, 2, 2], [2, 0, 0], [2, 0, 2], [2, 2, 0], [2, 2, 2]])]
+
+        density = chi4.get_particle_density(sample_coordinates, 1)
+        assert math.isclose(1, density) is True
+
+    @staticmethod
+    def test_simple_chi_4():
+        chi4_result = chi4.measure_chi_4("sample_configurations/sample_configuration.xyz", 3, 100, 1, 0)
+        print(chi4_result)
+
+    @staticmethod
+    def test_cell_list_chi_4():
+        chi4_result = chi4.measure_chi_4("sample_configurations/sample_configuration.xyz", 3, 100, 1, 1)
+        print(chi4_result)

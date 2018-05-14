@@ -105,11 +105,11 @@ def loop_over_neighbour_cells(vector_cell_index, num_cells):
             for z_neighbour in range(vector_cell_index[2] - 1, vector_cell_index[2] + 2):
                 neighbour_vector_index = [x_neighbour, y_neighbour, z_neighbour]
                 # Correct neighbour index for boundaries
-                for dimension in range(3):
-                    if neighbour_vector_index[dimension] > num_cells[dimension] - 1:
-                        neighbour_vector_index[dimension] -= num_cells[dimension]
-                    if neighbour_vector_index[dimension] < 0:
-                        neighbour_vector_index[dimension] += num_cells[dimension]
+                for index, value in enumerate(neighbour_vector_index):
+                    if value > num_cells[index] - 1:
+                        neighbour_vector_index[index] -= num_cells[index]
+                    if value < 0:
+                        neighbour_vector_index[index] += num_cells[index]
                 yield neighbour_vector_index
 
 
