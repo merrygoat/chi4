@@ -4,10 +4,16 @@ from scipy.spatial.distance import cdist, squareform
 import coordinate_methods
 
 
-def calculate_chi_four(particle_positions, frame_cutoff, particle_diameter):
-
+def calculate_chi_four(particle_positions, frame_cutoff, displacement_threshold):
+    """
+    The main chi4 loop. Go through pairs of frames, get the overlap and sum it up
+    :param particle_positions: A list of f numpy arrays of size N by d where f is the number of frames,
+     N is the number of particles and d is the number of spatial dimensions
+    :param frame_cutoff: The maximum number of frames to process for each time difference
+    :param displacement_threshold: The distance threshold for determining overlap
+    :return:
+    """
     num_frames = len(particle_positions)
-    displacement_threshold = 0.3 * particle_diameter
     sq_displacement_threshold = displacement_threshold ** 2
     distance = np.zeros((num_frames, 3))
     distancesquared = np.zeros((num_frames, 3))
@@ -28,17 +34,7 @@ def calculate_chi_four(particle_positions, frame_cutoff, particle_diameter):
                 distancesquared[cur_frame_number - ref_frame_number, 0:2] += [(overlap_count * overlap_count), 1]
         pbar.update(num_iterations)
 
-    normalised_distance = normalise_by_observations(distance)
-    normalised_distancesquared = normalise_by_observations(distancesquared)
-
-    chi_squared = normalised_distancesquared - normalised_distance ** 2
-
-    density, average_particles = get_particle_density(particle_positions, particle_diameter)
-
-    temperature = 1
-    chi_squared = chi_squared * density / average_particles * temperature
-
-    return chi_squared
+    return distance, distancesquared
 
 
 def normalise_by_observations(result_list):
@@ -68,38 +64,62 @@ def count_overlap(cur_frame, ref_frame, sq_displacement_threshold):
     return num_overlaps
 
 
+def get_average_particles(particle_positions):
+    """ Given a set of frames of particle positions get the average number of particles in each frame
+    :param particle_positions: A list of f numpy arrays of size N by d where f is the number of frames,
+     N is the number of particles and d is the number of spatial dimensions
+    :return: The average number fo particles per frame for the series
+    """
+    total_particles = 0
+
+    for frame in particle_positions:
+        total_particles += len(frame)
+
+    average_particles = total_particles / len(particle_positions)
+
+    return average_particles
+
+
 def get_particle_density(particle_positions, particle_diameter):
     """ Get particle density by frame and take an average. Calculating by frame prevents issues due to drift.
     Get the box size from the first frame and divide by the average number of particles to get the particle density
     :param particle_positions: A list of f numpy arrays of size N by d where f is the number of frames,
      N is the number of particles and d is the number of spatial dimensions
     :param particle_diameter: The diameter of a particle in the units of the coordinates
-    :return: The average density of the box througout the simulation
+    :return: The average density of the box througout the simulation in units of particle diamters
     """
     total_density = 0
-    total_particles = 0
 
     for frame in particle_positions:
         frame_particles = len(frame)
-        lengths = (np.amax(frame) - np.amin(frame)) / particle_diameter
+        lengths = (np.amax(frame, axis=0) - np.amin(frame, axis=0)) / particle_diameter
 
         volume = 1
         for side_length in lengths:
             volume *= side_length
 
         total_density += volume / frame_particles
-        total_particles += frame_particles
 
     average_density = total_density / len(particle_positions)
-    average_particles = total_particles / len(particle_positions)
 
-    return average_density, average_particles
+    return average_density
 
 
 def main(filename, num_spatial_dimensions, frame_cutoff, particle_diameter):
 
     particle_positions = coordinate_methods.read_xyz_file(filename, num_spatial_dimensions)
-    chisquaredresults, distance = calculate_chi_four(particle_positions, frame_cutoff, particle_diameter)
+    distance, distance_squared = calculate_chi_four(particle_positions, frame_cutoff, 0.3 * particle_diameter)
 
-    np.savetxt(filename + "_chi4.txt", chisquaredresults)
-    np.savetxt(filename + "_w.txt", distance)
+    normalised_distance = normalise_by_observations(distance)
+    normalised_distancesquared = normalise_by_observations(distance_squared)
+
+    chi_squared = normalised_distancesquared - normalised_distance ** 2
+
+    density = get_particle_density(particle_positions, particle_diameter)
+    average_particles = get_average_particles(particle_positions)
+
+    temperature = 1
+    chi_squared = chi_squared * density / average_particles * temperature
+
+    np.savetxt(filename + "_chi4.txt", chi_squared)
+    np.savetxt(filename + "_w.txt", normalised_distance)

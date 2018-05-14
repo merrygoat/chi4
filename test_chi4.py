@@ -1,6 +1,7 @@
 import coordinate_methods
 import chi4
 import numpy as np
+import math
 
 
 class TestCoordinateMethods:
@@ -28,3 +29,19 @@ class TestChi4Methods:
         actual_result = chi4.normalise_by_observations(sample_data)
         assert np.allclose(actual_result, anticipated_result, equal_nan=True) is True
 
+    @staticmethod
+    def test_get_density():
+        # cubic unit cell of size [2, 2, 2]
+        sample_coordinates = [np.array([[0, 0, 0], [0, 0, 2], [0, 2, 0], [0, 2, 2], [2, 0, 0], [2, 0, 2], [2, 2, 0], [2, 2, 2]])]
+
+        density = chi4.get_particle_density(sample_coordinates, 1)
+        assert math.isclose(1, density) is True
+
+    @staticmethod
+    def test_get_average_particles():
+        # cubic unit cell of size [2, 2, 2]
+        sample_coordinates = [np.array([[0, 0, 0], [0, 0, 2], [0, 2, 0], [0, 2, 2], [2, 0, 0], [2, 0, 2], [2, 2, 0], [2, 2, 2]]),
+                              np.array([[0, 2, 0], [0, 2, 2], [2, 0, 0], [2, 0, 2], [2, 2, 0], [2, 2, 2]])]
+
+        average_particles = chi4.get_average_particles(sample_coordinates)
+        assert math.isclose(7, average_particles) is True
