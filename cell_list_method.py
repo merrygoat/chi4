@@ -33,7 +33,7 @@ def get_cell_size(particle_coordinates, correlation_length, pbcs=0):
         for dimension_index, dimension in enumerate(num_cells):
             num_cells[dimension_index] += 1
 
-    return num_cells, cell_size, box_size
+    return num_cells, cell_size
 
 
 def get_scalar_cell_index(cell_indices, num_cells):
@@ -96,21 +96,27 @@ def loop_over_inner_cells(num_cells):
 
 def loop_over_neighbour_cells(vector_cell_index, num_cells):
     """
-    A generator to return the vector index of neighbouring cells
+    A generator to return the vector index of neighbouring cells.
     :param vector_cell_index: a list of integer cell indices, one for each dimension
     :param num_cells: a list of integers, the total number of cells in each dimension
+    :yield: A vector describing hte location of the next neighbour cell or the number -1 if the neighbour cell is
+    outside of the box
     """
     for x_neighbour in range(vector_cell_index[0] - 1, vector_cell_index[0] + 2):
         for y_neighbour in range(vector_cell_index[1] - 1, vector_cell_index[1] + 2):
             for z_neighbour in range(vector_cell_index[2] - 1, vector_cell_index[2] + 2):
                 neighbour_vector_index = [x_neighbour, y_neighbour, z_neighbour]
                 # Correct neighbour index for boundaries
+                out_of_bounds = 0
                 for index, value in enumerate(neighbour_vector_index):
                     if value > num_cells[index] - 1:
-                        neighbour_vector_index[index] -= num_cells[index]
+                        out_of_bounds = 1
                     if value < 0:
-                        neighbour_vector_index[index] += num_cells[index]
-                yield neighbour_vector_index
+                        out_of_bounds = 1
+                if out_of_bounds == 0:
+                    yield neighbour_vector_index
+                else:
+                    yield -1
 
 
 def get_all_overlaps(particle_positions, frame_cutoff, displacement_threshold):
@@ -127,7 +133,7 @@ def get_all_overlaps(particle_positions, frame_cutoff, displacement_threshold):
     distance = np.zeros((num_frames, 3))
     distancesquared = np.zeros((num_frames, 3))
 
-    num_cells, cell_size, box_size = get_cell_size(particle_positions, displacement_threshold)
+    num_cells, cell_size = get_cell_size(particle_positions, displacement_threshold)
     cell_heads, links = setup_cell_list(particle_positions, cell_size, num_cells)
 
     if frame_cutoff > num_frames:
@@ -135,33 +141,33 @@ def get_all_overlaps(particle_positions, frame_cutoff, displacement_threshold):
 
     pbar = tqdm(total=int(((frame_cutoff - 1) ** 2 + (frame_cutoff - 1)) / 2 + (num_frames - frame_cutoff) * frame_cutoff))
 
-    for cur_frame_index, cur_frame in enumerate(particle_positions):
+    for ref_frame_index, ref_frame in enumerate(particle_positions):
         num_iterations = 0
-        for ref_frame_index, ref_frame in enumerate(particle_positions):
-            if ref_frame_index > cur_frame_index:
+        for cur_frame_index, cur_frame in enumerate(particle_positions):
+            if cur_frame_index > ref_frame_index:
                 overlap_count = 0
                 for cell_vector_index in loop_over_inner_cells(num_cells):
                     cell_scalar_index = get_scalar_cell_index(cell_vector_index, num_cells)
                     for neighbour_vector_index in loop_over_neighbour_cells(cell_vector_index, num_cells):
-                        neighbour_scalar_index = get_scalar_cell_index(neighbour_vector_index, num_cells)
-                        particle_i = cell_heads[cur_frame_index][cell_scalar_index]
-                        while particle_i != -1:
-                            particle_j = cell_heads[ref_frame_index][neighbour_scalar_index]
-                            while particle_j != -1:
-                                if particle_i < particle_j:
-                                    overlap_count += check_overlap_between_particles(particle_i, particle_j, cur_frame, ref_frame, sq_displacement_threshold)
-                                particle_j = links[ref_frame_index][particle_j]
-                            particle_i = links[cur_frame_index][particle_i]
+                        if neighbour_vector_index != -1:
+                            neighbour_scalar_index = get_scalar_cell_index(neighbour_vector_index, num_cells)
+                            particle_i = cell_heads[ref_frame_index][cell_scalar_index]
+                            while particle_i != -1:
+                                particle_j = cell_heads[cur_frame_index][neighbour_scalar_index]
+                                while particle_j != -1:
+                                    overlap_count += check_overlap_between_particles(particle_i, particle_j, ref_frame, cur_frame, sq_displacement_threshold)
+                                    particle_j = links[cur_frame_index][particle_j]
+                                particle_i = links[ref_frame_index][particle_i]
                 distance[cur_frame_index - ref_frame_index, 0:2] += [overlap_count, 1]
-                distancesquared[cur_frame_index - ref_frame_index, 0:2] += [(overlap_count * overlap_count), 1]
+                distancesquared[ref_frame_index - cur_frame_index, 0:2] += [(overlap_count * overlap_count), 1]
                 num_iterations += 1
         pbar.update(num_iterations)
 
     return distance, distancesquared
 
 
-def check_overlap_between_particles(particle_i, particle_j, cur_frame, ref_frame, squared_correlation_length):
-    diff = cur_frame[particle_i, :] - ref_frame[particle_j, :]
+def check_overlap_between_particles(particle_i, particle_j, ref_frame, cur_frame, squared_correlation_length):
+    diff = ref_frame[particle_i, :] - cur_frame[particle_j, :]
     squared_distance = diff[0] ** 2 + diff[1] ** 2 + diff[2] ** 2
     if squared_distance < squared_correlation_length:
         return 1

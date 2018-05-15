@@ -35,14 +35,13 @@ class TestCellListMethod:
 
     def test_cell_size(self):
         # Given some coordinates, check the correct number of cells are generated.
-        num_cells, cell_size, box_size = cell_list_method.get_cell_size(self.sample_coordinates, correlation_length=2, pbcs=0)
+        num_cells, cell_size = cell_list_method.get_cell_size(self.sample_coordinates, correlation_length=2, pbcs=0)
         assert num_cells[0] == 6
         assert num_cells[1] == 4
         assert num_cells[2] == 3
         assert math.isclose(cell_size[0], 2)
         assert math.isclose(cell_size[1], 7/3)
         assert math.isclose(cell_size[2], 2.5)
-        assert box_size == [10, 7, 5]
 
     @staticmethod
     def test_get_all_overlaps():
@@ -94,18 +93,18 @@ class TestCellListMethod:
         index_list = []
         for index in cell_list_method.loop_over_neighbour_cells([2, 2, 2], [3, 3, 3]):
             index_list.append(index)
-        assert index_list == [[1, 1, 1], [1, 1, 2], [1, 1, 0], [1, 2, 1], [1, 2, 2], [1, 2, 0], [1, 0, 1], [1, 0, 2], [1, 0, 0],
-                              [2, 1, 1], [2, 1, 2], [2, 1, 0], [2, 2, 1], [2, 2, 2], [2, 2, 0], [2, 0, 1], [2, 0, 2], [2, 0, 0],
-                              [0, 1, 1], [0, 1, 2], [0, 1, 0], [0, 2, 1], [0, 2, 2], [0, 2, 0], [0, 0, 1], [0, 0, 2], [0, 0, 0]]
+        assert index_list == [[1, 1, 1], [1, 1, 2], -1, [1, 2, 1], [1, 2, 2], -1, -1, -1, -1,
+                              [2, 1, 1], [2, 1, 2], -1, [2, 2, 1], [2, 2, 2], -1, -1,-1,-1,
+                              -1, -1, -1, -1, -1, -1, -1, -1, -1]
 
     @staticmethod
     def test_check_overlap_between_particles():
         frame_1 = np.array([[1, 1, 1], [1, 2, 3]])
         frame_2 = np.array([[1, 1, 1], [10, 10, 10]])
-        assert cell_list_method.check_overlap_between_particles(particle_i=0, particle_j=0, cur_frame=frame_1,
-                                                                ref_frame=frame_2, squared_correlation_length=25) == 1
-        assert cell_list_method.check_overlap_between_particles(particle_i=0, particle_j=1, cur_frame=frame_1,
-                                                                ref_frame=frame_2, squared_correlation_length=25) == 0
+        assert cell_list_method.check_overlap_between_particles(particle_i=0, particle_j=0, ref_frame=frame_1,
+                                                                cur_frame=frame_2, squared_correlation_length=25) == 1
+        assert cell_list_method.check_overlap_between_particles(particle_i=0, particle_j=1, ref_frame=frame_1,
+                                                                cur_frame=frame_2, squared_correlation_length=25) == 0
 
 
 class TestChi4:
