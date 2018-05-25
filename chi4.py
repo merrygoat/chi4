@@ -5,7 +5,7 @@ import cdist_method
 
 
 def measure_chi_4(filename, num_spatial_dimensions, frame_cutoff, particle_diameter, use_cell_list=1):
-
+  
     particle_positions = coordinate_methods.read_xyz_file(filename, num_spatial_dimensions)
     if use_cell_list:
         distance, distance_squared = cell_list_method.get_all_overlaps(particle_positions, frame_cutoff, 0.3 * particle_diameter)
