@@ -13,7 +13,7 @@ def calculate_chi_four(sorted_particle_positions, frame_cutoff, particle_diamete
     distance = np.zeros((num_frames, 3))
     distancesquared = np.zeros((num_frames, 3))
 
-    if frame_cutoff > num_frames:
+    if frame_cutoff > num_frames or frame_cutoff == 0:
         frame_cutoff = num_frames
     # the number of operations involves the (num_frames - 1)'th triangle number
     tri_frames = num_frames - 1
@@ -64,16 +64,17 @@ def normalization(distance, distancesquared, data, particle_diameter):
     for frame in data:
         total_particles += len(frame)
     average_particles = total_particles/len(data)
+    num_spatial_dimensions = data[0][0].shape[0]
 
     # Work out box volume
-    x_len = (data[0][:, 0].max() - data[0][:, 0].min()) / particle_diameter
-    y_len = (data[0][:, 1].max() - data[0][:, 1].min()) / particle_diameter
-    z_len = (data[0][:, 2].max() - data[0][:, 2].min()) / particle_diameter
-    volume = x_len * y_len * z_len
-    density = volume / average_particles
+    side_lengths = (data[0].max(axis=0) - data[0].min(axis=0)) / particle_diameter
+    volume = 1
+    for side in side_lengths:
+        volume *= side
+    density = average_particles / volume
     temperature = 1
     # Normalise chi squared
-    chisquared = chisquared * density / average_particles * temperature
+    chisquared = chisquared / density * average_particles * temperature
     return chisquared, distance
 
 
@@ -94,7 +95,8 @@ def read_xyz_file(filename, dimensions):
             elif line_number == 1:
                 comment = line
             else:
-                particle_positions[frame_number][line_number-2] = line.split()[1:]
+                for x in range(dimensions):
+                    particle_positions[frame_number][line_number-2][x] = line.split()[1:][x]
             line_number += 1
             # If we have reached the last particle in the frame, reset counter for next frame
             if line_number == (frame_particles + 2):
@@ -123,4 +125,11 @@ def main(filename, num_spatial_dimensions, frame_cutoff, particle_diameter):
     np.savetxt(filename + "_w.txt", distance)
 
 
-main("run155.xyz", 3, 250, 1)
+if __name__ == '__main__':
+    filename = "F:/sample DH/Pastore/2dtracking/complete trajectories/xyztrajectory.xyz"
+    num_spatial_dimensions = 2
+    frame_cutoff = 0
+    particle_diameter = 18
+
+    main(filename, num_spatial_dimensions, frame_cutoff, particle_diameter)
+

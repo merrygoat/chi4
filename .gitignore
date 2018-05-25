@@ -5,3 +5,4 @@ working_copy.ipynb
 *.xyz
 *.txt
 *.cg
+.cache/
