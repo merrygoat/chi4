@@ -1,16 +1,12 @@
 import numpy as np
 import coordinate_methods
-import cell_list_method
 import cdist_method
 
+def measure_chi_4(filename, num_spatial_dimensions, frame_cutoff, particle_diameter):
 
-def measure_chi_4(filename, num_spatial_dimensions, frame_cutoff, particle_diameter, use_cell_list=1):
-  
     particle_positions = coordinate_methods.read_xyz_file(filename, num_spatial_dimensions)
-    if use_cell_list:
-        distance, distance_squared = cell_list_method.get_all_overlaps(particle_positions, frame_cutoff, 0.3 * particle_diameter)
-    else:
-        distance, distance_squared = cdist_method.get_all_overlaps(particle_positions, frame_cutoff, 0.3 * particle_diameter)
+
+    distance, distance_squared = cdist_method.get_all_overlaps(particle_positions, frame_cutoff, 0.3 * particle_diameter)
 
     normalised_distance = normalise_by_observations(distance)
     normalised_distancesquared = normalise_by_observations(distance_squared)
@@ -78,3 +74,12 @@ def get_particle_density(particle_positions, particle_diameter):
     average_density = total_density / len(particle_positions)
 
     return average_density
+
+
+if __name__ == '__main__':
+    filename = "F:/sample DH/Pastore/2dtracking/complete trajectories/xyztrajectory.xyz"
+    num_spatial_dimensions = 2
+    frame_cutoff = 20
+    particle_diameter = 17
+
+    np.savetxt("chi4.txt", measure_chi_4(filename, num_spatial_dimensions, frame_cutoff, particle_diameter))

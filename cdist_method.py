@@ -31,7 +31,7 @@ def get_all_overlaps(particle_positions, frame_cutoff, displacement_threshold):
     distance = np.zeros((num_frames, 3))
     distancesquared = np.zeros((num_frames, 3))
 
-    if frame_cutoff > num_frames:
+    if frame_cutoff > num_frames or frame_cutoff == 0:
         frame_cutoff = num_frames
     # the number of operations involves the (num_frames - 1)'th triangle number
     pbar = tqdm(total=int(((frame_cutoff - 1) ** 2 + (frame_cutoff - 1)) / 2 + (num_frames - frame_cutoff) * frame_cutoff))
