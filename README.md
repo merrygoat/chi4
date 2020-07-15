@@ -27,3 +27,7 @@ particle2_xposition particle2_yposition particle2_zposition framenumber particle
 ...
 
 2D or 3D data are accepted, the number of dimensions must be specifed as a parameter. 2D data follows the same format ass abov except from the omission of the z position.
+
+## Publication
+
+This code is free to use under the MIT licence. If used in work leading to a publication, please cite the relevent version using the DOI:  [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3946702.svg)](https://doi.org/10.5281/zenodo.3946702)
